@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>💬 问题留言板</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 70%, #a855f7 100%);
+    min-height: 100vh;
+    padding: 42px 16px 40px;
+  }
+
+  .board-container {
+    max-width: 680px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.07);
+    border-radius: 24px;
+    padding: 40px 24px 48px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+  }
+
+  .board-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .board-header h1 {
+    color: #fff;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .board-header p {
+    color: rgba(255,255,255,0.72);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .write-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 20px 16px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .write-card textarea {
+    width: 100%;
+    min-height: 88px;
+    border: 2px solid #e8ecf1;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  .write-card textarea:focus {
+    border-color: #667eea;
+  }
+
+  .write-card textarea::placeholder {
+    color: #b0b8c4;
+  }
+
+  .write-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .name-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #8892a0;
+    font-size: 14px;
+  }
+
+  .name-input-wrap input {
+    border: none;
+    border-bottom: 1.5px dashed #d0d5dd;
+    padding: 4px 6px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    width: 108px;
+    transition: border-color 0.2s;
+    background: transparent;
+  }
+
+  .name-input-wrap input:focus {
+    border-bottom-color: #667eea;
+  }
+
+  .btn-submit {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 32px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    box-shadow: 0 4px 12px rgba(102,126,234,0.35);
+    white-space: nowrap;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(102,126,234,0.45);
+  }
+
+  .btn-submit:active {
+    transform: scale(0.97);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .toast {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .message-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .msg-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    animation: fadeUp 0.35s ease-out;
+    position: relative;
+  }
+
+  .msg-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 16px 0 0 8px;
+    background: linear-gradient(180deg, #667eea, #a855f7);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #a855f7);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .msg-author {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a2332;
+  }
+
+  .msg-time {
+    font-size: 12px;
+    color: #a0aab8;
+    margin-left: auto;
+  }
+
+  .msg-content {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #2d3748;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.55);
+  }
+
+  .empty-state .icon {
+    font-size: 54px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+
+  .empty-state p {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .board-footer {
+    text-align: center;
+    margin-top: 32px;
+    color: rgba(255,255,255,0.42);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="board-container">
+  <div class="board-header">
+    <h1>💬 问题留言板</h1>
+    <p>欢迎留下您感兴趣的话题、困惑或见解<br>我们会定期整理并在群内分享洞察</p>
+  </div>
+
+  <div class="write-card">
+    <textarea id="msgInput" placeholder="写下您想讨论的问题或想法……"></textarea>
+    <div class="write-footer">
+      <div class="name-input-wrap">
+        <span>✏</span>
+        <input id="nameInput" type="text" placeholder="您的称呼" maxlength="20">
+      </div>
+      <button class="btn-submit" id="submitBtn" onclick="postMessage()">发布留言</button>
+    </div>
+  </div>
+
+  <div class="message-list" id="messageList"></div>
+
+  <div class="board-footer">留言仅群内可见 · 我们会认真对待每一条提问</div>
+</div>
+
+<script>
+  (function() {
+    var STORAGE_KEY = 'client_msg_board';
+    // API 后端地址 — 部署时需替换为实际后端地址
+    var API_BASE = window.location.origin + '/api';
+
+    function loadMessages() {
+      // 先尝试从后端获取
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', API_BASE + '/messages', false);
+      xhr.setRequestHeader('Accept', 'application/json');
+      try {
+        xhr.send();
+        if (xhr.status === 200) {
+          var data = JSON.parse(xhr.responseText);
+          if (data && data.messages && data.messages.length > 0) {
+            return data.messages;
+          }
+        }
+      } catch(e) {}
+      // 后端不可用时降级到本地存储
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function saveMessages(msgs) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function() {
+        t.classList.remove('show');
+      }, 2000);
+    }
+
+    window.postMessage = function() {
+      var content = document.getElementById('msgInput').value.trim();
+      if (!content) {
+        showToast('请先写下您的问题或想法 ✍');
+        document.getElementById('msgInput').focus();
+        return;
+      }
+
+      var name = document.getElementById('nameInput').value.trim();
+      if (!name) {
+        name = '匿名朋友';
+      }
+
+      var now = new Date();
+      var pad = function(n) { return String(n).padStart(2, '0'); };
+      var timeStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) +
+                    ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+      // 先提交到后端
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/messages', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onload = function() {
+        if (xhr.status === 200 || xhr.status === 201) {
+          showToast('✅ 留言发布成功！');
+        } else {
+          // 后端不可用，降级到本地存储
+          var msgs = loadMessagesLocal();
+          msgs.unshift({
+            name: name,
+            content: content,
+            time: timeStr
+          });
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+          showToast('✅ 留言发布成功！');
+        }
+        document.getElementById('msgInput').value = '';
+        render();
+      };
+      xhr.onerror = function() {
+        // 网络错误时降级
+        var msgs = loadMessagesLocal();
+        msgs.unshift({
+          name: name,
+          content: content,
+          time: timeStr
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+        document.getElementById('msgInput').value = '';
+        render();
+        showToast('✅ 留言发布成功！');
+      };
+      xhr.send(JSON.stringify({ name: name, content: content, time: timeStr }));
+    };
+
+    function loadMessagesLocal() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch(e) { return []; }
+    }
+
+    function render() {
+      var msgs = loadMessages();
+      var container = document.getElementById('messageList');
+
+      if (msgs.length === 0) {
+        container.innerHTML =
+          '<div class="empty-state">' +
+          '  <div class="icon">📝</div>' +
+          '  <p>还没有留言，快来写下第一个问题吧！</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < msgs.length; i++) {
+        var m = msgs[i];
+        var name = m.name || '匿名朋友';
+        var avatarChar = name.charAt(0);
+        html +=
+          '<div class="msg-card">' +
+          '  <div class="msg-header">' +
+          '    <div class="avatar">' + escapeHtml(avatarChar) + '</div>' +
+          '    <span class="msg-author">' + escapeHtml(name) + '</span>' +
+          '    <span class="msg-time">' + escapeHtml(m.time) + '</span>' +
+          '  </div>' +
+          '  <div class="msg-content">' + escapeHtml(m.content) + '</div>' +
+          '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    render();
+  })();
+</script>
+
+</body>
+</html>
